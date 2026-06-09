@@ -40,7 +40,10 @@ async def seed():
             status=AccountStatus.active,
             account_type=AccountType.user,
         )
-        session.add_all([airline, insurer, test_user])
+        for account in [airline, insurer, test_user]:
+            existing = await session.get(Account, account.id)
+            if not existing:
+                session.add(account)
         await session.commit()
         print(f"Seeded. Test user account ID: {test_user.id}")
 
