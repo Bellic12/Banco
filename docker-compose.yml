@@ -18,7 +18,7 @@ services:
   api:
     build: .
     ports:
-      - "8000:8000"
+      - "80:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://banco:banco@db:5432/banco
       AIRLINE_ACCOUNT_ID: "00000000-0000-0000-0000-000000000001"

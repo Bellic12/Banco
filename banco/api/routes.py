@@ -29,4 +29,4 @@ async def get_transaction(transaction_id: UUID, db: AsyncSession = Depends(get_d
 async def get_transactions_by_reference(reference: str, db: AsyncSession = Depends(get_db)):
     repo = TransactionRepository(db)
     transactions = await repo.get_by_reference(reference)
-    return TransactionListResponse(reference=reference, transactions=transactions)
+    return TransactionListResponse(transactions=transactions)

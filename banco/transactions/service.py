@@ -20,18 +20,16 @@ class PaymentService:
         from_account_id: UUID,
         to_account_id: UUID,
         amount: Decimal,
-        currency: str,
-        reference: str,
         transaction_type: TransactionType,
     ) -> Transaction:
         transaction = Transaction(
             type=transaction_type,
             status=TransactionStatus.pending,
             amount=amount,
-            currency=currency,
+            currency="USD",
             from_account_id=from_account_id,
             to_account_id=to_account_id,
-            reference=reference,
+            reference="",
         )
         await self.transaction_repo.create(transaction)
         return transaction
@@ -48,9 +46,6 @@ class PaymentService:
 
         if user_account.status != AccountStatus.active:
             raise HTTPException(status_code=400, detail={"error": "ACCOUNT_INACTIVE", "message": "User account is inactive"})
-
-        if user_account.currency != request.currency:
-            raise HTTPException(status_code=400, detail={"error": "CURRENCY_MISMATCH", "message": f"Account currency {user_account.currency} does not match {request.currency}"})
 
         total = request.flight_amount + request.insurance_amount
         if user_account.balance < total:
@@ -69,8 +64,6 @@ class PaymentService:
             from_account_id=request.user_account_id,
             to_account_id=airline_account_id,
             amount=request.flight_amount,
-            currency=request.currency,
-            reference=request.reference,
             transaction_type=TransactionType.flight,
         )
         await self.account_repo.debit(user_account, request.flight_amount)
@@ -84,8 +77,6 @@ class PaymentService:
                 from_account_id=request.user_account_id,
                 to_account_id=insurer_account_id,
                 amount=request.insurance_amount,
-                currency=request.currency,
-                reference=request.reference,
                 transaction_type=TransactionType.insurance,
             )
             await self.account_repo.debit(user_account, request.insurance_amount)
@@ -98,8 +89,6 @@ class PaymentService:
             await self.db.refresh(tx)
 
         return PaymentResponse(
-            reference=request.reference,
             total_debited=total,
-            currency=request.currency,
             transactions=transactions,
         )

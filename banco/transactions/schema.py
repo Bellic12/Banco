@@ -1,7 +1,7 @@
 from uuid import UUID
 from decimal import Decimal
 from datetime import datetime
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, field_validator
 from banco.transactions.models import TransactionType, TransactionStatus
 
 
@@ -9,8 +9,6 @@ class PaymentRequest(BaseModel):
     user_account_id: UUID
     flight_amount: Decimal
     insurance_amount: Decimal = Decimal("0.00")
-    currency: str = "USD"
-    reference: str
 
     @field_validator("flight_amount")
     @classmethod
@@ -32,10 +30,8 @@ class TransactionResponse(BaseModel):
     type: TransactionType
     status: TransactionStatus
     amount: Decimal
-    currency: str
     from_account_id: UUID
     to_account_id: UUID
-    reference: str
     failure_reason: str | None
     timestamp: datetime
 
@@ -43,7 +39,9 @@ class TransactionResponse(BaseModel):
 
 
 class PaymentResponse(BaseModel):
-    reference: str
     total_debited: Decimal
-    currency: str
+    transactions: list[TransactionResponse]
+
+
+class TransactionListResponse(BaseModel):
     transactions: list[TransactionResponse]
