@@ -68,5 +68,6 @@ class PaymentService:
             await self._record(request.user_account_id, insurer_account_id, request.insurance_amount, TransactionType.insurance, TransactionStatus.success)
 
         await self.db.commit()
-        asyncio.create_task(notify_airline(callback_url, True, str(request.user_account_id)))
+        if callback_url:
+            asyncio.create_task(notify_airline(callback_url, True, str(request.user_account_id)))
         return PaymentResponse(success=True)

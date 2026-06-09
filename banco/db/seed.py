@@ -9,6 +9,9 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
+USER_1_ID = uuid.UUID("00000000-0000-0000-0000-000000000003")
+BROKE_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000004")
+
 DUMMY_USERS = [
     ("Alice Johnson",  Decimal("8500.00")),
     ("Bob Martinez",   Decimal("3200.00")),
@@ -24,6 +27,15 @@ async def seed():
         await conn.run_sync(Base.metadata.create_all)
 
     async with AsyncSessionLocal() as session:
+        user_1 = Account(
+            id=USER_1_ID,
+            owner_name="User 1",
+            balance=Decimal("10000.00"),
+            currency="USD",
+            status=AccountStatus.active,
+            account_type=AccountType.user,
+        )
+
         system_accounts = [
             Account(
                 id=settings.airline_account_id,
@@ -55,7 +67,16 @@ async def seed():
             for name, balance in DUMMY_USERS
         ]
 
-        session.add_all(system_accounts + user_accounts)
+        broke_user = Account(
+            id=BROKE_USER_ID,
+            owner_name="Broke User",
+            balance=Decimal("0.00"),
+            currency="USD",
+            status=AccountStatus.active,
+            account_type=AccountType.user,
+        )
+
+        session.add_all(system_accounts + [user_1, broke_user] + user_accounts)
 
         await session.commit()
 
@@ -63,6 +84,8 @@ async def seed():
         print(f"Airline  : {settings.airline_account_id}  — SkyWings Airlines")
         print(f"Insurer  : {settings.insurer_account_id}  — SafeTrip Insurance")
         print("\n=== USER ACCOUNTS ===")
+        print(f"{user_1.id}  — {'User 1':<20} balance: ${user_1.balance}")
+        print(f"{broke_user.id}  — {'Broke User':<20} balance: ${broke_user.balance}")
         for acc in user_accounts:
             print(f"{acc.id}  — {acc.owner_name:<20} balance: ${acc.balance}")
 

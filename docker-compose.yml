@@ -21,7 +21,6 @@ services:
       DATABASE_URL: postgresql+asyncpg://banco:banco@db:5432/banco
       AIRLINE_ACCOUNT_ID: "00000000-0000-0000-0000-000000000001"
       INSURER_ACCOUNT_ID: "00000000-0000-0000-0000-000000000002"
-      AIRLINE_CALLBACK_URL: "http://airline-system/api/payment-result"
     depends_on:
       db:
         condition: service_healthy
