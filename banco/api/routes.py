@@ -3,22 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from banco.db.base import get_db
 from banco.config import settings
-from banco.users.repository import AccountRepository
-from banco.users.schema import AccountResponse
 from banco.transactions.repository import TransactionRepository
 from banco.transactions.schema import PaymentRequest, TransactionResponse, TransactionListResponse
 from banco.transactions.service import PaymentService
 
 router = APIRouter(prefix="/api/v1")
 
-
-@router.get("/accounts/{account_id}", response_model=AccountResponse)
-async def get_account(account_id: UUID, db: AsyncSession = Depends(get_db)):
-    repo = AccountRepository(db)
-    account = await repo.get_by_id(account_id)
-    if not account:
-        raise HTTPException(status_code=404, detail={"error": "ACCOUNT_NOT_FOUND", "message": f"Account {account_id} not found"})
-    return account
 
 
 @router.post("/payments/flight", response_model=TransactionResponse, status_code=201)

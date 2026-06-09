@@ -41,37 +41,6 @@ All responses use JSON. All error responses follow the format:
 
 ---
 
-### GET `/accounts/{account_id}`
-
-Fetch account info and current balance.
-
-**Called by:** Airline system (to verify user has funds before initiating payment)
-
-**Request**
-```
-GET /api/v1/accounts/700c6f46-e427-40d7-87f0-6b7c76ada214
-```
-
-**Response `200`**
-```json
-{
-  "id": "700c6f46-e427-40d7-87f0-6b7c76ada214",
-  "owner_name": "Alice Johnson",
-  "balance": 8500.00,
-  "currency": "USD",
-  "status": "active",
-  "account_type": "user"
-}
-```
-
-**Error cases**
-
-| Status | Error Code | Cause |
-|---|---|---|
-| `404` | `ACCOUNT_NOT_FOUND` | Account ID does not exist |
-
----
-
 ### POST `/payments/flight`
 
 Debit user account and credit airline account.
@@ -250,19 +219,17 @@ Returns empty `transactions` array if reference not found (not a 404).
 
 ```
 Airline System
-  1. GET  /accounts/{user_account_id}        → verify balance ≥ flight price
-  2. POST /payments/flight                   → transfer money
-  3. Store returned transaction_id
+  1. POST /payments/flight                   → balance checked internally, money transferred
+  2. Store returned transaction_id
 ```
 
 ### Flight + Insurance
 
 ```
 Airline System
-  1. GET  /accounts/{user_account_id}        → verify balance ≥ flight + insurance
-  2. POST /payments/flight                   → transfer flight amount
-  3. POST /payments/insurance                → transfer insurance amount (same reference)
-  4. Store both transaction IDs
+  1. POST /payments/flight                   → balance checked internally, flight amount transferred
+  2. POST /payments/insurance                → balance checked internally, insurance amount transferred (same reference)
+  3. Store both transaction IDs
 ```
 
 > Both payments use the same `reference`. If the insurance payment fails after the flight payment succeeds, the airline system is responsible for handling that case (e.g. retry or notify user). Banco does not roll back committed transactions.
