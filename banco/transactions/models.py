@@ -14,7 +14,6 @@ class TransactionType(str, enum.Enum):
 
 
 class TransactionStatus(str, enum.Enum):
-    pending = "PENDING"
     success = "SUCCESS"
     failed = "FAILED"
 
@@ -24,7 +23,7 @@ class Transaction(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     type: Mapped[TransactionType] = mapped_column(SAEnum(TransactionType), nullable=False)
-    status: Mapped[TransactionStatus] = mapped_column(SAEnum(TransactionStatus), nullable=False, default=TransactionStatus.pending)
+    status: Mapped[TransactionStatus] = mapped_column(SAEnum(TransactionStatus), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     from_account_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("accounts.id"), nullable=False)

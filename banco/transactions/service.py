@@ -1,3 +1,4 @@
+import asyncio
 from uuid import UUID
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +7,7 @@ from banco.users.models import AccountStatus
 from banco.transactions.repository import TransactionRepository
 from banco.transactions.models import Transaction, TransactionType, TransactionStatus
 from banco.transactions.schema import PaymentRequest, PaymentResponse
+from banco.callbacks import notify_airline
 from fastapi import HTTPException
 
 
@@ -15,30 +17,30 @@ class PaymentService:
         self.account_repo = AccountRepository(db)
         self.transaction_repo = TransactionRepository(db)
 
-    async def _build_transaction(
+    async def _record(
         self,
         from_account_id: UUID,
         to_account_id: UUID,
         amount: Decimal,
         transaction_type: TransactionType,
-    ) -> Transaction:
-        transaction = Transaction(
+        status: TransactionStatus,
+    ) -> None:
+        await self.transaction_repo.create(Transaction(
             type=transaction_type,
-            status=TransactionStatus.pending,
+            status=status,
             amount=amount,
             currency="USD",
             from_account_id=from_account_id,
             to_account_id=to_account_id,
             reference="",
-        )
-        await self.transaction_repo.create(transaction)
-        return transaction
+        ))
 
     async def pay(
         self,
         request: PaymentRequest,
         airline_account_id: UUID,
         insurer_account_id: UUID,
+        callback_url: str,
     ) -> PaymentResponse:
         user_account = await self.account_repo.get_by_id(request.user_account_id)
         if not user_account:
@@ -51,44 +53,20 @@ class PaymentService:
         if user_account.balance < total:
             raise HTTPException(
                 status_code=400,
-                detail={
-                    "error": "INSUFFICIENT_FUNDS",
-                    "message": f"Account balance {user_account.balance} is less than required {total}",
-                },
+                detail={"error": "INSUFFICIENT_FUNDS", "message": f"Account balance {user_account.balance} is less than required {total}"},
             )
 
         airline_account = await self.account_repo.get_by_id(airline_account_id)
-        transactions = []
-
-        flight_tx = await self._build_transaction(
-            from_account_id=request.user_account_id,
-            to_account_id=airline_account_id,
-            amount=request.flight_amount,
-            transaction_type=TransactionType.flight,
-        )
         await self.account_repo.debit(user_account, request.flight_amount)
         await self.account_repo.credit(airline_account, request.flight_amount)
-        flight_tx.status = TransactionStatus.success
-        transactions.append(flight_tx)
+        await self._record(request.user_account_id, airline_account_id, request.flight_amount, TransactionType.flight, TransactionStatus.success)
 
         if request.insurance_amount > 0:
             insurer_account = await self.account_repo.get_by_id(insurer_account_id)
-            insurance_tx = await self._build_transaction(
-                from_account_id=request.user_account_id,
-                to_account_id=insurer_account_id,
-                amount=request.insurance_amount,
-                transaction_type=TransactionType.insurance,
-            )
             await self.account_repo.debit(user_account, request.insurance_amount)
             await self.account_repo.credit(insurer_account, request.insurance_amount)
-            insurance_tx.status = TransactionStatus.success
-            transactions.append(insurance_tx)
+            await self._record(request.user_account_id, insurer_account_id, request.insurance_amount, TransactionType.insurance, TransactionStatus.success)
 
         await self.db.commit()
-        for tx in transactions:
-            await self.db.refresh(tx)
-
-        return PaymentResponse(
-            total_debited=total,
-            transactions=transactions,
-        )
+        asyncio.create_task(notify_airline(callback_url, True, str(request.user_account_id)))
+        return PaymentResponse(success=True)

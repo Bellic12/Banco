@@ -25,6 +25,10 @@ class PaymentRequest(BaseModel):
         return v
 
 
+class PaymentResponse(BaseModel):
+    success: bool
+
+
 class TransactionResponse(BaseModel):
     id: UUID
     type: TransactionType
@@ -36,11 +40,6 @@ class TransactionResponse(BaseModel):
     timestamp: datetime
 
     model_config = {"from_attributes": True}
-
-
-class PaymentResponse(BaseModel):
-    total_debited: Decimal
-    transactions: list[TransactionResponse]
 
 
 class TransactionListResponse(BaseModel):

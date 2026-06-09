@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/v1")
 @router.post("/payments", response_model=PaymentResponse, status_code=201)
 async def pay(request: PaymentRequest, db: AsyncSession = Depends(get_db)):
     service = PaymentService(db)
-    return await service.pay(request, settings.airline_account_id, settings.insurer_account_id)
+    return await service.pay(request, settings.airline_account_id, settings.insurer_account_id, settings.airline_callback_url)
 
 
 @router.get("/transactions/{transaction_id}", response_model=TransactionResponse)
