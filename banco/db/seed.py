@@ -5,47 +5,66 @@ from decimal import Decimal
 from banco.db.base import engine, Base
 from banco.config import settings
 from banco.users.models import Account, AccountStatus, AccountType
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
+DUMMY_USERS = [
+    ("Alice Johnson",  Decimal("8500.00")),
+    ("Bob Martinez",   Decimal("3200.00")),
+    ("Carol Smith",    Decimal("12000.00")),
+    ("David Lee",      Decimal("450.00")),
+    ("Eva Torres",     Decimal("6750.00")),
+]
+
 
 async def seed():
     async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     async with AsyncSessionLocal() as session:
-        airline = Account(
-            id=settings.airline_account_id,
-            owner_name="Airline",
-            balance=Decimal("0.00"),
-            currency="USD",
-            status=AccountStatus.active,
-            account_type=AccountType.airline,
-        )
-        insurer = Account(
-            id=settings.insurer_account_id,
-            owner_name="Insurance Company",
-            balance=Decimal("0.00"),
-            currency="USD",
-            status=AccountStatus.active,
-            account_type=AccountType.insurer,
-        )
-        test_user = Account(
-            id=uuid.uuid4(),
-            owner_name="Test User",
-            balance=Decimal("5000.00"),
-            currency="USD",
-            status=AccountStatus.active,
-            account_type=AccountType.user,
-        )
-        for account in [airline, insurer, test_user]:
-            existing = await session.get(Account, account.id)
-            if not existing:
-                session.add(account)
+        system_accounts = [
+            Account(
+                id=settings.airline_account_id,
+                owner_name="SkyWings Airlines",
+                balance=Decimal("0.00"),
+                currency="USD",
+                status=AccountStatus.active,
+                account_type=AccountType.airline,
+            ),
+            Account(
+                id=settings.insurer_account_id,
+                owner_name="SafeTrip Insurance",
+                balance=Decimal("0.00"),
+                currency="USD",
+                status=AccountStatus.active,
+                account_type=AccountType.insurer,
+            ),
+        ]
+
+        user_accounts = [
+            Account(
+                id=uuid.uuid4(),
+                owner_name=name,
+                balance=balance,
+                currency="USD",
+                status=AccountStatus.active,
+                account_type=AccountType.user,
+            )
+            for name, balance in DUMMY_USERS
+        ]
+
+        session.add_all(system_accounts + user_accounts)
+
         await session.commit()
-        print(f"Seeded. Test user account ID: {test_user.id}")
+
+        print("\n=== SYSTEM ACCOUNTS ===")
+        print(f"Airline  : {settings.airline_account_id}  — SkyWings Airlines")
+        print(f"Insurer  : {settings.insurer_account_id}  — SafeTrip Insurance")
+        print("\n=== USER ACCOUNTS ===")
+        for acc in user_accounts:
+            print(f"{acc.id}  — {acc.owner_name:<20} balance: ${acc.balance}")
 
 
 if __name__ == "__main__":
