@@ -4,25 +4,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from banco.db.base import get_db
 from banco.config import settings
 from banco.transactions.repository import TransactionRepository
-from banco.transactions.schema import PaymentRequest, TransactionResponse, TransactionListResponse
+from banco.transactions.schema import PaymentRequest, PaymentResponse, TransactionResponse, TransactionListResponse
 from banco.transactions.service import PaymentService
 
 router = APIRouter(prefix="/api/v1")
 
 
-
-@router.post("/payments/flight", response_model=TransactionResponse, status_code=201)
-async def pay_flight(request: PaymentRequest, db: AsyncSession = Depends(get_db)):
+@router.post("/payments", response_model=PaymentResponse, status_code=201)
+async def pay(request: PaymentRequest, db: AsyncSession = Depends(get_db)):
     service = PaymentService(db)
-    transaction = await service.pay_flight(request, settings.airline_account_id)
-    return transaction
-
-
-@router.post("/payments/insurance", response_model=TransactionResponse, status_code=201)
-async def pay_insurance(request: PaymentRequest, db: AsyncSession = Depends(get_db)):
-    service = PaymentService(db)
-    transaction = await service.pay_insurance(request, settings.insurer_account_id)
-    return transaction
+    return await service.pay(request, settings.airline_account_id, settings.insurer_account_id)
 
 
 @router.get("/transactions/{transaction_id}", response_model=TransactionResponse)
